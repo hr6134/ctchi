@@ -9,6 +9,10 @@ repository = "https://github.com/glotitude/ctchi"
 homepage = "https://github.com/glotitude/ctchi"
 readme = "README.md"
 
+exclude = [
+    "src/static/*",
+]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
