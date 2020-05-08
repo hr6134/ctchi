@@ -1,0 +1,14 @@
+[package]
+name = "ctchi"
+version = "0.1.0"
+authors = ["glotitude <ltoshchev@gmail.com>"]
+edition = "2018"
+description = "Home made web framework."
+license = "BSD-3-Clause"
+repository = "https://github.com/glotitude/ctchi"
+homepage = "https://github.com/glotitude/ctchi"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
