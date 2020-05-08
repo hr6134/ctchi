@@ -1,10 +1,32 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write};
 use std::fs;
+use std::collections::HashMap;
+
+pub struct Routes<'a> {
+    routes: HashMap<&'a str, &'a str>,
+}
+
+impl<'a> Routes<'a> {
+    pub fn new() -> Routes<'a> {
+        Routes {
+            routes: HashMap::new(),
+        }
+    }
+
+    pub fn add_route(&mut self, uri: &'a str, file: &'a str) {
+        self.routes.insert(uri, file);
+    }
+
+    pub fn get_route(&self, uri: &'a str) -> &str {
+        self.routes.get(uri).unwrap_or(&"")
+    }
+}
 
 pub struct Config<'a> {
     pub bind_path: &'a str,
     pub static_path: &'a str,
+    pub routes: Routes<'a>,
 }
 
 pub struct Ctchi<'a> {
@@ -35,13 +57,12 @@ impl<'a> Ctchi<'a> {
         stream.read(&mut buf).unwrap();
         let request = self.parse_request(&buf);
 
-        // todo remove routes after testing
-        // todo add routes as part of configuration
-        let content = match request.url.as_ref() {
-            "/" => fs::read_to_string(format!("{}{}", self.config.static_path, "/src/static/index.html")).unwrap(),
-            "/blog" => fs::read_to_string(format!("{}{}", self.config.static_path, "/src/static/blog.html")).unwrap(),
-            _ => fs::read_to_string(format!("{}{}", self.config.static_path, "/src/static/404.html")).unwrap(),
-        };
+        let content = self.config.routes.get_route(request.url.as_ref());
+        let content = fs::read_to_string(format!(
+            "{}{}",
+            self.config.static_path,
+            self.config.routes.get_route(request.url.as_ref())
+        )).unwrap();
 
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
         stream.write(response.as_bytes()).unwrap();
