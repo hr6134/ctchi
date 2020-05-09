@@ -9,14 +9,14 @@ use super::http::{HttpMethod, Request};
 
 pub struct Config<'a> {
     pub bind_path: &'a str,
-    pub static_path: &'a str,
+    pub base_path: &'a str,
     pub routes: Routes<'a>,
 }
 
 struct RequestHandler;
 
 impl RequestHandler {
-    fn handle_request(&self, mut stream: TcpStream, static_path: String, routes: Arc<Routes>) {
+    fn handle_request(&self, mut stream: TcpStream, base_path: String, routes: Arc<Routes>) {
         let mut buf = [0; 512];
 
         stream.read(&mut buf);
@@ -24,7 +24,7 @@ impl RequestHandler {
 
         let content = fs::read_to_string(format!(
             "{}{}",
-            static_path,
+            base_path,
             routes.get_route(request.url.as_ref())
         )).unwrap_or_else(|error| { error.to_string() });
 
@@ -43,18 +43,7 @@ impl RequestHandler {
         println!("Request: {}", request_str);
         let blocks = request_str.split("\r\n").collect::<Vec<&str>>();
         let method = blocks[0].split(" ").collect::<Vec<&str>>();
-        let http_method = match method[0] {
-            "GET" => HttpMethod::GET,
-            "POST" => HttpMethod::POST,
-            "PUT" => HttpMethod::PUT,
-            "DELETE" => HttpMethod::DELETE,
-            "OPTIONS" => HttpMethod::OPTIONS,
-            "HEAD" => HttpMethod::HEAD,
-            "CONNECT" => HttpMethod::CONNECT,
-            "TRACE" => HttpMethod::TRACE,
-            "PATCH" => HttpMethod::PATCH,
-            _ => HttpMethod::UNKNOWN,
-        };
+        let http_method = HttpMethod::parse(method[0]);
 
         let headers = if blocks.len() > 1 {
             blocks[1].to_string()
@@ -91,12 +80,12 @@ impl Ctchi {
     pub fn start(self) -> std::io::Result<()> {
         let listener = TcpListener::bind(self.config.bind_path)?;
         let routes = Arc::new(self.config.routes);
-        let static_path = self.config.static_path.to_string();
+        let base_path = self.config.base_path.to_string();
 
         for stream in listener.incoming() {
             let stream = stream.unwrap();
             let r = routes.clone();
-            let s = static_path.clone();
+            let s = base_path.clone();
 
             thread::spawn(|| {
                 let handler = RequestHandler {};

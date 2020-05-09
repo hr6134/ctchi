@@ -11,7 +11,7 @@ fn main() {
 
     let configuration = Config {
         bind_path: "127.0.0.1:8080",
-        static_path: "/home/ltoshchev/programming/rust/ctchi/",
+        base_path: "/home/ltoshchev/programming/rust/ctchi/",
         routes,
     };
 
