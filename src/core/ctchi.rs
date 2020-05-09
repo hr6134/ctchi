@@ -74,6 +74,7 @@ impl<'a> Ctchi<'a> {
 
     fn parse_request(&self, request: &[u8]) -> Request {
         let request_str = String::from_utf8_lossy(request);
+        println!("Request: {}", request_str);
         let blocks = request_str.split("\r\n").collect::<Vec<&str>>();
         let method = blocks[0].split(" ").collect::<Vec<&str>>();
         let http_method = match method[0] {
@@ -95,9 +96,15 @@ impl<'a> Ctchi<'a> {
             String::new()
         };
 
+        let url = if method.len() > 1 {
+            method[1].to_string()
+        } else {
+            String::new()
+        };
+
         Request {
             method: http_method,
-            url: method[1].to_string(),
+            url,
             headers,
             body: String::new(),
         }
