@@ -19,7 +19,7 @@ impl<'a> Routes<'a> {
     }
 
     pub fn get_route(&self, uri: &'a str) -> &str {
-        self.routes.get(uri).unwrap_or(&"")
+        self.routes.get(uri).unwrap_or(&"/404")
     }
 }
 
@@ -53,20 +53,23 @@ impl<'a> Ctchi<'a> {
     fn handle_client(&self, mut stream: TcpStream) {
         let mut buf = [0; 512];
 
-        // todo add exception handler
-        stream.read(&mut buf).unwrap();
+        stream.read(&mut buf);
         let request = self.parse_request(&buf);
 
-        let content = self.config.routes.get_route(request.url.as_ref());
         let content = fs::read_to_string(format!(
             "{}{}",
             self.config.static_path,
             self.config.routes.get_route(request.url.as_ref())
-        )).unwrap();
+        )).unwrap_or_else(|error| { error.to_string() });
 
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
-        stream.write(response.as_bytes()).unwrap();
-        stream.flush().unwrap();
+        stream.write(response.as_bytes()).unwrap_or_else(|error| {
+            println!("{}", error);
+            0
+        });
+        stream.flush().unwrap_or_else(|error| {
+            println!("{}", error);
+        });
     }
 
     fn parse_request(&self, request: &[u8]) -> Request {
@@ -78,7 +81,12 @@ impl<'a> Ctchi<'a> {
             "POST" => HttpMethod::POST,
             "PUT" => HttpMethod::PUT,
             "DELETE" => HttpMethod::DELETE,
-            _ => panic!("Dont know method {}", method[0]),
+            "OPTIONS" => HttpMethod::OPTIONS,
+            "HEAD" => HttpMethod::HEAD,
+            "CONNECT" => HttpMethod::CONNECT,
+            "TRACE" => HttpMethod::TRACE,
+            "PATCH" => HttpMethod::PATCH,
+            _ => HttpMethod::UNKNOWN,
         };
 
         Request {
@@ -94,7 +102,13 @@ enum HttpMethod {
     GET,
     POST,
     PUT,
-    DELETE
+    DELETE,
+    OPTIONS,
+    HEAD,
+    CONNECT,
+    TRACE,
+    PATCH,
+    UNKNOWN,
 }
 
 struct Request {
