@@ -89,10 +89,16 @@ impl<'a> Ctchi<'a> {
             _ => HttpMethod::UNKNOWN,
         };
 
+        let headers = if blocks.len() > 1 {
+            blocks[1].to_string()
+        } else {
+            String::new()
+        };
+
         Request {
             method: http_method,
             url: method[1].to_string(),
-            headers: blocks[1].to_string(),
+            headers,
             body: String::new(),
         }
     }
