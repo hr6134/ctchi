@@ -16,7 +16,7 @@ pub struct Config<'a> {
 struct RequestHandler;
 
 impl RequestHandler {
-    fn handle_request(&self, mut stream: TcpStream, base_path: String, routes: Arc<Routes>) {
+    fn handle_request(&self, mut stream: TcpStream, config: Arc<Config>) {
         let mut buf = [0; 512];
 
         stream.read(&mut buf);
@@ -24,8 +24,8 @@ impl RequestHandler {
 
         let content = fs::read_to_string(format!(
             "{}{}",
-            base_path,
-            routes.get_route(request.url.as_ref())
+            config.base_path,
+            config.routes.get_route(request.url.as_ref())
         )).unwrap_or_else(|error| { error.to_string() });
 
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
@@ -79,18 +79,16 @@ impl Ctchi {
 
     pub fn start(self) -> std::io::Result<()> {
         let listener = TcpListener::bind(self.config.bind_path)?;
-        let routes = Arc::new(self.config.routes);
-        let base_path = self.config.base_path.to_string();
+        let config = Arc::new(self.config);
 
         for stream in listener.incoming() {
             let stream = stream.unwrap();
-            let r = routes.clone();
-            let s = base_path.clone();
+            let c = config.clone();
 
             thread::spawn(|| {
                 let handler = RequestHandler {};
 
-                handler.handle_request(stream, s, r);
+                handler.handle_request(stream, c);
             });
         }
         Ok(())
