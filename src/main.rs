@@ -1,6 +1,7 @@
 extern crate ctchi;
 
-use ctchi::core::ctchi::{Ctchi, Config, Routes};
+use ctchi::core::ctchi::{Ctchi, Config};
+use ctchi::core::routes::Routes;
 
 fn main() {
     let mut routes = Routes::new();

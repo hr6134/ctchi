@@ -1,27 +1,11 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write};
 use std::fs;
-use std::collections::HashMap;
+use std::thread;
+use std::sync::Arc;
 
-pub struct Routes<'a> {
-    routes: HashMap<&'a str, &'a str>,
-}
-
-impl<'a> Routes<'a> {
-    pub fn new() -> Routes<'a> {
-        Routes {
-            routes: HashMap::new(),
-        }
-    }
-
-    pub fn add_route(&mut self, uri: &'a str, file: &'a str) {
-        self.routes.insert(uri, file);
-    }
-
-    pub fn get_route(&self, uri: &'a str) -> &str {
-        self.routes.get(uri).unwrap_or(&"/404")
-    }
-}
+use super::routes::Routes;
+use super::http::{HttpMethod, Request};
 
 pub struct Config<'a> {
     pub bind_path: &'a str,
@@ -29,28 +13,10 @@ pub struct Config<'a> {
     pub routes: Routes<'a>,
 }
 
-pub struct Ctchi<'a> {
-    config: Config<'a>,
-}
+struct RequestHandler;
 
-impl<'a> Ctchi<'a> {
-    pub fn new(config: Config) -> Ctchi {
-        Ctchi {
-            config,
-        }
-    }
-
-    pub fn start(&self) -> std::io::Result<()> {
-        let listener = TcpListener::bind(self.config.bind_path)?;
-
-        // accept connections and process them serially
-        for stream in listener.incoming() {
-            self.handle_client(stream?);
-        }
-        Ok(())
-    }
-
-    fn handle_client(&self, mut stream: TcpStream) {
+impl RequestHandler {
+    fn handle_request(&self, mut stream: TcpStream, static_path: String, routes: Arc<Routes>) {
         let mut buf = [0; 512];
 
         stream.read(&mut buf);
@@ -58,8 +24,8 @@ impl<'a> Ctchi<'a> {
 
         let content = fs::read_to_string(format!(
             "{}{}",
-            self.config.static_path,
-            self.config.routes.get_route(request.url.as_ref())
+            static_path,
+            routes.get_route(request.url.as_ref())
         )).unwrap_or_else(|error| { error.to_string() });
 
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
@@ -111,22 +77,33 @@ impl<'a> Ctchi<'a> {
     }
 }
 
-enum HttpMethod {
-    GET,
-    POST,
-    PUT,
-    DELETE,
-    OPTIONS,
-    HEAD,
-    CONNECT,
-    TRACE,
-    PATCH,
-    UNKNOWN,
+pub struct Ctchi {
+    config: Config<'static>,
 }
 
-struct Request {
-    method: HttpMethod,
-    url: String,
-    headers: String,
-    body: String,
+impl Ctchi {
+    pub fn new(config: Config<'static>) -> Ctchi {
+        Ctchi {
+            config,
+        }
+    }
+
+    pub fn start(self) -> std::io::Result<()> {
+        let listener = TcpListener::bind(self.config.bind_path)?;
+        let routes = Arc::new(self.config.routes);
+        let static_path = self.config.static_path.to_string();
+
+        for stream in listener.incoming() {
+            let stream = stream.unwrap();
+            let r = routes.clone();
+            let s = static_path.clone();
+
+            thread::spawn(|| {
+                let handler = RequestHandler {};
+
+                handler.handle_request(stream, s, r);
+            });
+        }
+        Ok(())
+    }
 }
