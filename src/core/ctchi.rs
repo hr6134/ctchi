@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use super::routes::Routes;
 use super::http::{HttpMethod, Request};
+use super::thread_pool::{ThreadPool};
 
 pub struct Config<'a> {
     pub bind_path: &'a str,
@@ -38,6 +39,8 @@ impl RequestHandler {
         });
     }
 
+    /// Parse stream of bytes in Request object.
+    /// Gets URI, HTTP method, headers and body.
     fn parse_request(&self, request: &[u8]) -> Request {
         let request_str = String::from_utf8_lossy(request);
         println!("Request: {}", request_str);
@@ -71,21 +74,49 @@ pub struct Ctchi {
 }
 
 impl Ctchi {
+    /// Create new application with specified configuration.
+    ///
+    /// # Arguments:
+    /// * `config` - configuration for application. `ctchi::core::ctchi::Config`
+    ///
     pub fn new(config: Config<'static>) -> Ctchi {
         Ctchi {
             config,
         }
     }
 
+    /// Start configured application. Now it will lister for specified ip:port
+    /// and respond for request if URI is in routes
+    ///
+    /// # Examples:
+    ///
+    /// ```rust,ignore
+    ///   use ctchi::core::ctchi::{Config, Ctchi};
+    ///   use ctchi::core::routes::Routes;
+    ///
+    ///   let mut routes = Routes::new();
+    ///   routes.add_route("/", "/src/static/index.html");
+    ///
+    ///   let configuration = Config {
+    ///        bind_path: "127.0.0.1:8080",
+    ///        base_path: "/var/www/",
+    ///        routes,
+    ///   };
+    ///
+    ///   let server = Ctchi::new(configuration);
+    ///   server.start();
+    /// ```
     pub fn start(self) -> std::io::Result<()> {
         let listener = TcpListener::bind(self.config.bind_path)?;
         let config = Arc::new(self.config);
+
+        let pool = ThreadPool::new(4);
 
         for stream in listener.incoming() {
             let stream = stream.unwrap();
             let c = config.clone();
 
-            thread::spawn(|| {
+            pool.execute(|| {
                 let handler = RequestHandler {};
 
                 handler.handle_request(stream, c);
