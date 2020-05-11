@@ -16,6 +16,6 @@ impl<'a> Routes<'a> {
     }
 
     pub fn get_route(&self, uri: &'a str) -> &str {
-        self.routes.get(uri).unwrap_or(&"/404")
+        self.routes.get(uri).unwrap_or(&"/404.html")
     }
 }

@@ -52,3 +52,8 @@ pub struct Request {
     pub headers: String,
     pub body: String,
 }
+
+pub struct Response {
+    pub code: String,
+    pub content: String,
+}

@@ -11,6 +11,7 @@ use super::thread_pool::{ThreadPool};
 pub struct Config<'a> {
     pub bind_path: &'a str,
     pub base_path: &'a str,
+    pub static_uri_pref: &'a str,
     pub routes: Routes<'a>,
 }
 
@@ -23,11 +24,14 @@ impl RequestHandler {
         stream.read(&mut buf);
         let request = self.parse_request(&buf);
 
-        let content = fs::read_to_string(format!(
-            "{}{}",
-            config.base_path,
-            config.routes.get_route(request.url.as_ref())
-        )).unwrap_or_else(|error| { error.to_string() });
+        let content_file_path = if request.url.starts_with(config.static_uri_pref) {
+            format!("{}{}", config.base_path, request.url)
+        } else {
+            format!("{}{}", config.base_path, config.routes.get_route(request.url.as_ref()))
+        };
+
+        let content = fs::read_to_string(content_file_path)
+            .unwrap_or_else(|error| { error.to_string() });
 
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
         stream.write(response.as_bytes()).unwrap_or_else(|error| {
