@@ -1,6 +1,6 @@
 [package]
 name = "ctchi"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["glotitude <ltoshchev@gmail.com>"]
 edition = "2018"
 description = "Home made web framework."
@@ -16,3 +16,9 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ctchi_codegen = { path = "ctchi_codegen" }
+
+[workspace]
+members = [
+    "ctchi_codegen",
+]

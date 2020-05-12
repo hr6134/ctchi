@@ -12,10 +12,19 @@ pub struct Config<'a> {
     pub bind_path: &'a str,
     pub base_path: &'a str,
     pub static_uri_pref: &'a str,
-    pub routes: Routes<'a>,
+    pub routes: Routes,
 }
 
 struct RequestHandler;
+
+fn read_static(file_pth: &str) -> impl Fn(&str) -> String + '_ {
+    move |pref| -> String {
+        use std::fs;
+        let content = fs::read_to_string(format!("{}/{}", pref, file_pth))
+            .unwrap_or_else(|error| { error.to_string() });
+        content
+    }
+}
 
 impl RequestHandler {
     fn handle_request(&self, mut stream: TcpStream, config: Arc<Config>) {
@@ -24,14 +33,11 @@ impl RequestHandler {
         stream.read(&mut buf);
         let request = self.parse_request(&buf);
 
-        let content_file_path = if request.url.starts_with(config.static_uri_pref) {
-            format!("{}{}", config.base_path, request.url)
+        let content = if request.url.starts_with(config.static_uri_pref) {
+            read_static(&request.url)(config.base_path)
         } else {
-            format!("{}{}", config.base_path, config.routes.get_route(request.url.as_ref()))
+            (config.routes.get_route(request.url.as_ref()).render_action)(config.base_path)
         };
-
-        let content = fs::read_to_string(content_file_path)
-            .unwrap_or_else(|error| { error.to_string() });
 
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
         stream.write(response.as_bytes()).unwrap_or_else(|error| {
