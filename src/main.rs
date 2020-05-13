@@ -17,9 +17,10 @@ fn main() {
         bind_path: "127.0.0.1:8080",
         base_path: "/home/ltoshchev/programming/rust/ctchi/src/static/",
         static_uri_pref: "/css/",
-        routes,
     };
 
-    let server = Ctchi::new(configuration);
+    Config::new();
+
+    let server = Ctchi::new(configuration, routes);
     server.start();
 }
