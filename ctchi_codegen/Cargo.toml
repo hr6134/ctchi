@@ -1,8 +1,13 @@
 [package]
 name = "ctchi_codegen"
 version = "0.1.0"
-authors = ["ltoshchev <ltoshchev@yandex-team.ru>"]
+authors = ["glotitude <ltoshchev@gmail.com>"]
 edition = "2018"
+description = "Macroses for Ctchi framework"
+license = "BSD-3-Clause"
+repository = "https://github.com/glotitude/ctchi"
+homepage = "https://github.com/glotitude/ctchi"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
