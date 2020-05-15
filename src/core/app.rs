@@ -79,7 +79,11 @@ impl RequestHandler {
             (routes.get_route(request.url.as_ref()).render_action)(config.base_path.as_ref())
         };
 
-        let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+            content.as_bytes().len(),
+            content
+        );
         stream.write(response.as_bytes()).unwrap_or_else(|error| {
             println!("{}", error);
             0
