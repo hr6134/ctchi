@@ -42,7 +42,7 @@ impl Config {
                 bind_path = cols[1];
             }
             if cols[0] == "base_path" {
-                templates_dir = cols[1];
+                templates_dir = cols[1].to_string();
             }
         }
 
