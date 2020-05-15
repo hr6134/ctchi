@@ -29,19 +29,22 @@ impl Config {
             Err(_) => String::new()
         };
 
+        let mut templates_dir = format!(
+            "{}{}",
+            current_dir().unwrap().to_str().unwrap(),
+            "/src/pages/"
+        );
+
         let lines = config_content.split("\n").collect::<Vec<&str>>();
         for l in lines {
             let cols = l.split("=").collect::<Vec<&str>>();
             if cols[0] == "bind_path" {
                 bind_path = cols[1];
             }
+            if cols[0] == "base_path" {
+                templates_dir = cols[1];
+            }
         }
-
-        let templates_dir = format!(
-            "{}{}",
-            current_dir().unwrap().to_str().unwrap(),
-            "/src/pages/"
-        );
 
         Config {
             bind_path: bind_path.to_string(),
