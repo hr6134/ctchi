@@ -13,13 +13,13 @@ fn main() {
     let mut routes = Routes::new();
     routes.add_route(index());
 
-    let configuration = Config {
-        bind_path: "127.0.0.1:8080",
-        base_path: "/home/ltoshchev/programming/rust/ctchi/src/static/",
-        static_uri_pref: "/css/",
-        routes,
+    let mut config = Config::new();
+
+    let server = Ctchi::new(config, routes);
+    let server_result = match server.start() {
+        Ok(()) => "Ctchi application server is successfully running!",
+        Err(_) => "Can't start server!"
     };
 
-    let server = Ctchi::new(configuration);
-    server.start();
+    println!("{}", server_result);
 }
