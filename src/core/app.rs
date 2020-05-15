@@ -9,6 +9,7 @@ use super::routes::Routes;
 use super::http::{HttpMethod, Request};
 use super::thread_pool::{ThreadPool};
 
+#[derive(Debug)]
 pub struct Config {
     pub bind_path: String,
     pub base_path: String,
@@ -21,6 +22,21 @@ impl Config {
     }
 
     fn parse_config(path: &str) -> Config {
+        let mut bind_path ="127.0.0.1:8080";
+
+        let config_content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(_) => String::new()
+        };
+
+        let lines = config_content.split("\n").collect::<Vec<&str>>();
+        for l in lines {
+            let cols = l.split("=").collect::<Vec<&str>>();
+            if cols[0] == "bind_path" {
+                bind_path = cols[1];
+            }
+        }
+
         let templates_dir = format!(
             "{}{}",
             current_dir().unwrap().to_str().unwrap(),
@@ -28,7 +44,7 @@ impl Config {
         );
 
         Config {
-            bind_path: "127.0.0.1:8080".to_string(),
+            bind_path: bind_path.to_string(),
             base_path: templates_dir,
             static_uri_pref: "/static/".to_string(),
         }

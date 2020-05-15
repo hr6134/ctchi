@@ -15,6 +15,8 @@ fn main() {
 
     let mut config = Config::new();
 
+    println!("{:?}", config);
+
     let server = Ctchi::new(config, routes);
     let server_result = match server.start() {
         Ok(()) => "Ctchi application server is successfully running!",
