@@ -81,7 +81,7 @@ impl RequestHandler {
 
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-            content.as_bytes().len(),
+            content.len(),
             content
         );
         stream.write(response.as_bytes()).unwrap_or_else(|error| {

@@ -19,8 +19,8 @@ fn main() {
 
     let server = Ctchi::new(config, routes);
     let server_result = match server.start() {
-        Ok(()) => "Ctchi application server is successfully running!",
-        Err(_) => "Can't start server!"
+        Ok(()) => "Ctchi application server is successfully running!".to_string(),
+        Err(err) => format!("Can't start server! Because '{}'", err)
     };
 
     println!("{}", server_result);
