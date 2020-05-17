@@ -1,6 +1,6 @@
 use std::net::{TcpListener, TcpStream};
-use std::io::{Read, Write};
-use std::fs;
+use std::io::{Read, Write, BufReader, BufRead};
+use std::{fs, time};
 use std::thread;
 use std::sync::Arc;
 use std::env::current_dir;
@@ -67,10 +67,18 @@ fn read_static(file_pth: &str) -> impl Fn(&str) -> String + '_ {
 
 impl RequestHandler {
     fn handle_request(&self, mut stream: TcpStream, config: Arc<Config>, routes: Arc<Routes>) {
-        let mut buf = [0; 512];
+        let mut request_input = Vec::new();
+        let mut reader = BufReader::new(stream);
 
-        stream.read(&mut buf);
-        let request = self.parse_request(&buf);
+        for line in reader.by_ref().lines() {
+            let l = line.unwrap();
+            request_input.extend_from_slice(l.as_bytes());
+            if l == String::from("") {
+                break;
+            }
+        };
+
+        let request = self.parse_request(&request_input);
 
         let prefix = &config.static_uri_pref;
         let content = if request.url.starts_with(prefix) {
@@ -80,15 +88,19 @@ impl RequestHandler {
         };
 
         let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-            content.len(),
+            "HTTP/1.1 200 OK\r\n\r\n{}",
             content
         );
-        stream.write(response.as_bytes()).unwrap_or_else(|error| {
+        println!("Response: {}", response);
+
+        let mut reader_stream = reader.into_inner();
+        let result = reader_stream.write(response.as_bytes());
+        let pres = result.unwrap_or_else(|error| {
             println!("{}", error);
             0
         });
-        stream.flush().unwrap_or_else(|error| {
+
+        reader_stream.flush().unwrap_or_else(|error| {
             println!("{}", error);
         });
     }
