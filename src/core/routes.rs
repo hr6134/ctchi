@@ -1,36 +1,50 @@
 use std::collections::HashMap;
+use regex::Regex;
+use std::sync::Arc;
 
 pub struct Route {
-    pub path: &'static str,
+    pub path: String,
     pub render_action: fn(&str) -> String,
 }
 
 pub struct Routes {
-    routes: HashMap<&'static str, Route>,
-}
-
-fn not_found(pref: &str) -> String {
-    use std::fs;
-    let content = fs::read_to_string(format!("{}/{}", pref, "404.html"))
-        .unwrap_or_else(|error| { error.to_string() });
-    content
+    routes: Vec<Route>,
 }
 
 impl Routes {
     pub fn new() -> Routes {
-        Routes {
-            routes: HashMap::new(),
-        }
+        let mut routes = Routes {
+            routes: Vec::new(),
+        };
+
+        routes.add_route(Route {
+            path: "/404".to_string(),
+            render_action: |url| {
+                "404 Not Found".to_string()
+            },
+        });
+
+        routes
     }
 
     pub fn add_route(&mut self, route: Route) {
-        self.routes.insert(route.path, route);
+        let url_replacer = Regex::new(r"(?P<first>\{.+?\})").unwrap();
+        let regex_url = url_replacer.replace_all(&route.path, ".+?");
+        let string = format!(r"^{}/?$", regex_url.to_string());
+        self.routes.push(Route {
+            path: string,
+            render_action: route.render_action,
+        });
     }
 
     pub fn get_route(&self, uri: &str) -> &Route {
-        self.routes.get(uri).unwrap_or(&&Route {
-            path: "/404",
-            render_action: not_found
-        })
+        for r in self.routes.iter() {
+            let regex = Regex::new(&r.path).unwrap();
+            if regex.is_match(uri) {
+                return r
+            }
+        }
+
+        self.get_route("/404")
     }
 }
