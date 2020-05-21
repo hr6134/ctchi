@@ -1,7 +1,6 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write, BufReader, BufRead};
-use std::{fs, time};
-use std::thread;
+use std::fs;
 use std::sync::Arc;
 use std::env::current_dir;
 
@@ -66,7 +65,7 @@ fn read_static(file_pth: &str) -> impl Fn(&str) -> String + '_ {
 }
 
 impl RequestHandler {
-    fn handle_request(&self, mut stream: TcpStream, config: Arc<Config>, routes: Arc<Routes>) {
+    fn handle_request(&self, stream: TcpStream, config: Arc<Config>, routes: Arc<Routes>) {
         let mut request_input = Vec::new();
         let mut reader = BufReader::new(stream);
 
@@ -84,7 +83,7 @@ impl RequestHandler {
         let content = if request.url.starts_with(prefix) {
             read_static(&request.url)(config.base_path.as_ref())
         } else {
-            (routes.get_route(request.url.as_ref()).render_action)(config.base_path.as_ref())
+            (routes.get_route(request.url.as_ref()).render_action)(request.url.as_ref())
         };
 
         let response = format!(
@@ -95,7 +94,7 @@ impl RequestHandler {
 
         let mut reader_stream = reader.into_inner();
         let result = reader_stream.write(response.as_bytes());
-        let pres = result.unwrap_or_else(|error| {
+        result.unwrap_or_else(|error| {
             println!("{}", error);
             0
         });
@@ -120,11 +119,15 @@ impl RequestHandler {
             String::new()
         };
 
-        let url = if method.len() > 1 {
+        let mut url = if method.len() > 1 {
             method[1].to_string()
         } else {
             String::new()
         };
+
+        if !url.ends_with("/") {
+            url = format!("{}/", url);
+        }
 
         Request {
             method: http_method,

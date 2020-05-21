@@ -17,6 +17,7 @@ exclude = [
 
 [dependencies]
 ctchi_codegen = { path = "ctchi_codegen", version = "0.1.0" }
+regex = "1"
 
 [workspace]
 members = [
