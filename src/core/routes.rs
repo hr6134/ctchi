@@ -13,9 +13,18 @@ pub struct Routes {
 
 impl Routes {
     pub fn new() -> Routes {
-        Routes {
+        let mut routes = Routes {
             routes: Vec::new(),
-        }
+        };
+
+        routes.add_route(Route {
+            path: "/404".to_string(),
+            render_action: |url| {
+                "404 Not Found".to_string()
+            },
+        });
+
+        routes
     }
 
     pub fn add_route(&mut self, route: Route) {
@@ -36,6 +45,6 @@ impl Routes {
             }
         }
 
-        panic!("");
+        self.get_route("/404")
     }
 }

@@ -1,5 +1,5 @@
 #![feature(concat_idents)]
-extern crate ctchi;
+mod utils;
 
 use ctchi::core::app::{Ctchi, Config};
 use ctchi::core::routes::{Routes, Route};
@@ -7,24 +7,6 @@ use ctchi::core::routes::{Routes, Route};
 use ctchi_codegen::{static_page, route};
 
 use std::fs;
-
-
-#[macro_export]
-macro_rules! render {
-    ($x:tt) => {
-        {
-            let content = fs::read_to_string($x).unwrap_or_else(|error| { error.to_string() });
-            content
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! routes {
-    ($x:ident) => {
-        concat_idents!(ctchi_routing_, $x)
-    }
-}
 
 #[route("/")]
 fn index()-> String {
