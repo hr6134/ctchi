@@ -4,7 +4,7 @@ mod utils;
 use ctchi::core::app::{Ctchi, Config};
 use ctchi::core::routes::{Routes, Route};
 
-use ctchi_codegen::{static_page, route};
+use ctchi_codegen::route;
 
 use std::fs;
 
