@@ -16,7 +16,7 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ctchi_codegen = { path = "ctchi_codegen", version = "0.1.0" }
+ctchi_codegen = { path = "ctchi_codegen", version = "0.2.0" }
 regex = "1"
 
 [workspace]
