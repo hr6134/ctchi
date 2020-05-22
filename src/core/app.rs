@@ -1,57 +1,11 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write, BufReader, BufRead};
-use std::fs;
 use std::sync::Arc;
-use std::env::current_dir;
 
 use super::routes::Routes;
 use super::http::{HttpMethod, Request};
 use super::thread_pool::{ThreadPool};
-
-#[derive(Debug)]
-pub struct Config {
-    pub bind_path: String,
-    pub base_path: String,
-    pub static_uri_pref: String,
-}
-
-impl Config {
-    pub fn new() -> Config {
-        Config::parse_config("/etc/ctchi/conf.txt")
-    }
-
-    fn parse_config(path: &str) -> Config {
-        let mut bind_path ="127.0.0.1:8080";
-
-        let config_content = match fs::read_to_string(path) {
-            Ok(content) => content,
-            Err(_) => String::new()
-        };
-
-        let mut templates_dir = format!(
-            "{}{}",
-            current_dir().unwrap().to_str().unwrap(),
-            "/src/pages/"
-        );
-
-        let lines = config_content.split("\n").collect::<Vec<&str>>();
-        for l in lines {
-            let cols = l.split("=").collect::<Vec<&str>>();
-            if cols[0] == "bind_path" {
-                bind_path = cols[1];
-            }
-            if cols[0] == "base_path" {
-                templates_dir = cols[1].to_string();
-            }
-        }
-
-        Config {
-            bind_path: bind_path.to_string(),
-            base_path: templates_dir,
-            static_uri_pref: "/static/".to_string(),
-        }
-    }
-}
+use crate::core::config::get_configuration;
 
 struct RequestHandler;
 
@@ -65,7 +19,7 @@ fn read_static(file_pth: &str) -> impl Fn(&str) -> String + '_ {
 }
 
 impl RequestHandler {
-    fn handle_request(&self, stream: TcpStream, config: Arc<Config>, routes: Arc<Routes>) {
+    fn handle_request(&self, stream: TcpStream, routes: Arc<Routes>) {
         let mut request_input = Vec::new();
         let mut reader = BufReader::new(stream);
 
@@ -79,10 +33,14 @@ impl RequestHandler {
 
         let request = self.parse_request(&request_input);
 
+        let config_reader = get_configuration();
+        let config = config_reader.inner.lock().unwrap();
+
         let prefix = &config.static_uri_pref;
         let content = if request.url.starts_with(prefix) {
             read_static(&request.url)(config.base_path.as_ref())
         } else {
+            drop(config);
             (routes.get_route(request.url.as_ref()).render_action)(request.url.as_ref())
         };
 
@@ -143,7 +101,6 @@ impl RequestHandler {
 }
 
 pub struct Ctchi {
-    config: Config,
     routes: Routes,
 }
 
@@ -153,9 +110,8 @@ impl Ctchi {
     /// # Arguments:
     /// * `config` - configuration for application. `ctchi::core::ctchi::Config`
     ///
-    pub fn new(config: Config, routes: Routes) -> Ctchi {
+    pub fn new(routes: Routes) -> Ctchi {
         Ctchi {
-            config,
             routes
         }
     }
@@ -182,21 +138,23 @@ impl Ctchi {
     ///   server.start();
     /// ```
     pub fn start(self) -> std::io::Result<()> {
-        let listener = TcpListener::bind(&self.config.bind_path)?;
-        let config = Arc::new(self.config);
+        let config_reader = get_configuration();
+        let config = config_reader.inner.lock().unwrap();
+
+        let listener = TcpListener::bind(&config.bind_path)?;
+        drop(config);
         let routes = Arc::new(self.routes);
 
         let pool = ThreadPool::new(4);
 
         for stream in listener.incoming() {
             let stream = stream.unwrap();
-            let c = config.clone();
             let r = routes.clone();
 
             pool.execute(|| {
                 let handler = RequestHandler {};
 
-                handler.handle_request(stream, c, r);
+                handler.handle_request(stream, r);
             });
         }
         Ok(())
