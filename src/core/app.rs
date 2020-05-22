@@ -125,7 +125,11 @@ impl RequestHandler {
             String::new()
         };
 
-        if !url.ends_with("/") {
+        if !url.ends_with("/")
+            && !url.ends_with(".css")
+            && !url.ends_with(".js")
+            && !url.ends_with(".jpg")
+        {
             url = format!("{}/", url);
         }
 
