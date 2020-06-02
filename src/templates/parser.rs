@@ -1,7 +1,5 @@
 use crate::core::config::get_configuration;
 
-use std::collections::HashMap;
-use regex::internal::Char;
 use std::fs;
 
 pub trait Content {
@@ -153,6 +151,7 @@ pub fn parse_file(path: &str) -> TemplateNode {
     let config_reader = get_configuration();
     let config = config_reader.inner.lock().unwrap();
     let page = format!("{}/{}", config.base_path, path);
+    drop(config);
     let content = fs::read_to_string(page).unwrap_or_else(|error| { error.to_string() });
 
     parse(&content)
@@ -177,7 +176,7 @@ fn parse_tag(html: &str) -> TemplateNode {
     let mut i = 1 + tag_open_token_raw.len();
 
     let single_line_tag = html_bytes[i-1] == b'/';
-    let mut tag_open_token = String::from_utf8(tag_open_token_raw).unwrap();
+    let tag_open_token = String::from_utf8(tag_open_token_raw).unwrap();
 
     // pass ending ]
     i += 1;
@@ -185,7 +184,7 @@ fn parse_tag(html: &str) -> TemplateNode {
     // look up for children only if we haven't single line tag
     if !single_line_tag {
         // read children
-        while html_bytes[i] != b'[' || html_bytes[i + 1] != b'e' {
+        while !is_end_tag(&html[i..html.len()]) {
             let child = if html_bytes[i] == b'[' && html_bytes[i + 1] == b'[' {
                 parse_value(&html[i..html.len()])
             } else if html_bytes[i] == b'[' {
@@ -226,6 +225,18 @@ fn parse_tag(html: &str) -> TemplateNode {
     }
 
     result
+}
+
+fn is_end_tag(html: &str) -> bool {
+    let tags = vec!("[endfor]", "[endtemplate]", "[endif]");
+
+    for tag in tags {
+        if html.starts_with(tag) {
+            return true
+        }
+    }
+
+    false
 }
 
 fn build_result(tag_open_token: &str, children: Vec<TemplateNode>, size: usize) -> TemplateNode {

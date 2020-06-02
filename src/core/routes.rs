@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 use regex::Regex;
-use std::sync::Arc;
 
 pub struct Route {
     pub path: String,
@@ -19,7 +17,7 @@ impl Routes {
 
         routes.add_route(Route {
             path: "/404".to_string(),
-            render_action: |url| {
+            render_action: |_url| {
                 "404 Not Found".to_string()
             },
         });

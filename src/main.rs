@@ -6,8 +6,6 @@ use ctchi::core::routes::{Routes, Route};
 
 use ctchi_codegen::route;
 
-use std::fs;
-
 #[route("/")]
 fn index()-> String {
     render!("index.html")
