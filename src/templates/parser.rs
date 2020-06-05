@@ -1,6 +1,7 @@
 use crate::core::config::get_configuration;
 
 use std::fs;
+use regex::Regex;
 
 pub trait Content {
     fn get_content(&self) -> Vec<u8>;
@@ -164,7 +165,18 @@ pub fn parse(html: &str) -> TemplateNode {
         })
     }
 
-    parse_tag(html)
+    let escaped_html = escape_page(html);
+
+    parse_tag(escaped_html.as_ref())
+}
+
+fn escape_page(html: &str) -> String {
+    let open_bracket_replacer = Regex::new(r"\\\[").unwrap();
+    let close_bracket_replacer = Regex::new(r"\\]").unwrap();
+    let open_replacer = open_bracket_replacer.replace_all(html, "&#x5B;");
+    let close_replacer = close_bracket_replacer.replace_all(open_replacer.as_ref(), "&#x5D;");
+
+    close_replacer.to_string()
 }
 
 fn parse_tag(html: &str) -> TemplateNode {
