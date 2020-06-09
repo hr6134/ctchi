@@ -6,7 +6,18 @@ macro_rules! render {
             use ctchi::templates::writer;
 
             let tag = parser::parse_file($x);
-            let result = writer::write(&tag);
+            let context = HashMap::new();
+            let result = writer::write(&tag, &context);
+            result
+        }
+    };
+    ($x:tt, $c:ident) => {
+        {
+            use ctchi::templates::parser;
+            use ctchi::templates::writer;
+
+            let tag = parser::parse_file($x);
+            let result = writer::write(&tag, &$c);
             result
         }
     }

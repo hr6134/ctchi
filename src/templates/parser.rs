@@ -2,9 +2,15 @@ use crate::core::config::get_configuration;
 
 use std::fs;
 use regex::Regex;
+use std::collections::HashMap;
+
+pub enum Context {
+    Single(bool),
+    Multi(Vec<String>),
+}
 
 pub trait Content {
-    fn get_content(&self) -> Vec<u8>;
+    fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8>;
 }
 
 #[derive(Debug)]
@@ -18,14 +24,14 @@ pub enum TemplateNode {
 }
 
 impl Content for TemplateNode {
-    fn get_content(&self) -> Vec<u8> {
+    fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         match self {
-            TemplateNode::CtchiTemplateTagNode(e) => e.get_content(),
-            TemplateNode::HtmlNode(e) => e.get_content(),
-            TemplateNode::CtchiValueNode(e) => e.get_content(),
-            TemplateNode::CtchiForTagNode(e) => e.get_content(),
-            TemplateNode::CtchiIfTagNode(e) => e.get_content(),
-            TemplateNode::CtchiImportTagNode(e) => e.get_content(),
+            TemplateNode::CtchiTemplateTagNode(e) => e.get_content(context),
+            TemplateNode::HtmlNode(e) => e.get_content(context),
+            TemplateNode::CtchiValueNode(e) => e.get_content(context),
+            TemplateNode::CtchiForTagNode(e) => e.get_content(context),
+            TemplateNode::CtchiIfTagNode(e) => e.get_content(context),
+            TemplateNode::CtchiImportTagNode(e) => e.get_content(context),
         }
     }
 }
@@ -57,11 +63,11 @@ pub struct TemplateTag {
 }
 
 impl Content for TemplateTag {
-     fn get_content(&self) -> Vec<u8> {
+     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
         for c in &self.children {
-            result.append(&mut c.get_content());
+            result.append(&mut c.get_content(context));
         }
 
         result
@@ -77,11 +83,11 @@ pub struct ForTag {
 }
 
 impl Content for ForTag {
-     fn get_content(&self) -> Vec<u8> {
+     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
         for c in &self.children {
-            result.append(&mut c.get_content());
+            result.append(&mut c.get_content(context));
         }
 
         result
@@ -96,11 +102,20 @@ pub struct IfTag {
 }
 
 impl Content for IfTag {
-     fn get_content(&self) -> Vec<u8> {
+    fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
-        for c in &self.children {
-            result.append(&mut c.get_content());
+        let default_value = Context::Single(false);
+        // let c = context.get(&self.var_name);
+        let context_value = match context.get(&self.var_name).unwrap_or(&default_value) {
+            Context::Single(e) => *e,
+            _ => panic!("Wrong context for If tag"),
+        };
+
+        if context_value {
+            for c in &self.children {
+                result.append(&mut c.get_content(context));
+            }
         }
 
         result
@@ -114,15 +129,9 @@ pub struct ImportTag {
 }
 
 impl Content for ImportTag {
-    fn get_content(&self) -> Vec<u8> {
-        // let config_reader = get_configuration();
-        // let config = config_reader.inner.lock().unwrap();
-        // let page = format!("{}/{}", config.base_path, &self.path);
-        // println!("Page: {}", page);
-        // let content = fs::read_to_string(page).unwrap_or_else(|error| { error.to_string() });
-
+    fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let node = parse_file(&self.path);
-        node.get_content()
+        node.get_content(context)
     }
 }
 
@@ -132,7 +141,7 @@ pub struct CtchiValue {
 }
 
 impl Content for CtchiValue {
-     fn get_content(&self) -> Vec<u8> {
+     fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
         Vec::new()
     }
 }
@@ -143,7 +152,7 @@ pub struct Html {
 }
 
 impl Content for Html {
-     fn get_content(&self) -> Vec<u8> {
+     fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
         Vec::from(self.value.as_bytes())
     }
 }

@@ -5,10 +5,14 @@ use ctchi::core::app::Ctchi;
 use ctchi::core::routes::{Routes, Route};
 
 use ctchi_codegen::route;
+use std::collections::HashMap;
+use ctchi::templates::parser::Context;
 
 #[route("/")]
 fn index()-> String {
-    render!("index.html")
+    let mut context = HashMap::<String, Context>::new();
+    context.insert("test".to_string(), Context::Single(true));
+    render!("index.html", context)
 }
 
 #[route("/blog/{id}/")]
