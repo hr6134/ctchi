@@ -5,8 +5,9 @@ use regex::Regex;
 use std::collections::HashMap;
 
 pub enum Context {
-    Single(bool),
-    Multi(Vec<String>),
+    BooleanValue(bool),
+    SingleValue(String),
+    MultiValue(Vec<String>),
 }
 
 pub trait Content {
@@ -105,10 +106,9 @@ impl Content for IfTag {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
-        let default_value = Context::Single(false);
-        // let c = context.get(&self.var_name);
+        let default_value = Context::BooleanValue(false);
         let context_value = match context.get(&self.var_name).unwrap_or(&default_value) {
-            Context::Single(e) => *e,
+            Context::BooleanValue(e) => *e,
             _ => panic!("Wrong context for If tag"),
         };
 
@@ -142,7 +142,14 @@ pub struct CtchiValue {
 
 impl Content for CtchiValue {
      fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
-        Vec::new()
+         let default_value = Context::SingleValue(String::new());
+
+         let result = match _context.get(&self.value).unwrap_or(&default_value) {
+             Context::SingleValue(e) => e,
+             _ => panic!("Value can only be single value")
+         };
+
+         Vec::from(result.as_bytes())
     }
 }
 

@@ -11,7 +11,8 @@ use ctchi::templates::parser::Context;
 #[route("/")]
 fn index()-> String {
     let mut context = HashMap::<String, Context>::new();
-    context.insert("test".to_string(), Context::Single(true));
+    context.insert("test".to_string(), Context::BooleanValue(true));
+    context.insert("my_name".to_string(), Context::SingleValue("Leonid Toshchev".to_string()));
     render!("index.html", context)
 }
 

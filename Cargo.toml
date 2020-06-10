@@ -1,6 +1,6 @@
 [package]
 name = "ctchi"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["glotitude <ltoshchev@gmail.com>"]
 edition = "2018"
 description = "Home made web framework."
