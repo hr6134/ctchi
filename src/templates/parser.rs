@@ -64,7 +64,7 @@ pub struct TemplateTag {
 }
 
 impl Content for TemplateTag {
-     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
+    fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
         for c in &self.children {
@@ -84,11 +84,22 @@ pub struct ForTag {
 }
 
 impl Content for ForTag {
-     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
+    fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
-        for c in &self.children {
-            result.append(&mut c.get_content(context));
+        let default_value = Context::MultiValue(Vec::new());
+        let context_value = match context.get(&self.param_name).unwrap_or(&default_value) {
+            Context::MultiValue(e) => e,
+            _ => panic!("For tag should have multivalue in context"),
+        };
+
+        for v in context_value {
+            let mut inner_context = HashMap::<String, Context>::new();
+            let local_var_name = &self.var_name;
+            inner_context.insert(local_var_name.to_string(), Context::SingleValue(v.to_string()));
+            for c in &self.children {
+                result.append(&mut c.get_content(&inner_context));
+            }
         }
 
         result
@@ -109,7 +120,7 @@ impl Content for IfTag {
         let default_value = Context::BooleanValue(false);
         let context_value = match context.get(&self.var_name).unwrap_or(&default_value) {
             Context::BooleanValue(e) => *e,
-            _ => panic!("Wrong context for If tag"),
+            _ => panic!("If tag should have boolean value in context"),
         };
 
         if context_value {
@@ -141,15 +152,15 @@ pub struct CtchiValue {
 }
 
 impl Content for CtchiValue {
-     fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
-         let default_value = Context::SingleValue(String::new());
+    fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
+        let default_value = Context::SingleValue(String::new());
 
-         let result = match _context.get(&self.value).unwrap_or(&default_value) {
-             Context::SingleValue(e) => e,
-             _ => panic!("Value can only be single value")
-         };
+        let result = match _context.get(&self.value).unwrap_or(&default_value) {
+            Context::SingleValue(e) => e,
+            _ => panic!("Value can only be single value")
+        };
 
-         Vec::from(result.as_bytes())
+        Vec::from(result.as_bytes())
     }
 }
 
@@ -159,7 +170,7 @@ pub struct Html {
 }
 
 impl Content for Html {
-     fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
+    fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
         Vec::from(self.value.as_bytes())
     }
 }
@@ -178,7 +189,7 @@ pub fn parse(html: &str) -> TemplateNode {
     if !html.starts_with("[template]") {
         return TemplateNode::HtmlNode(Html {
             value: html.to_string()
-        })
+        });
     }
 
     let escaped_html = escape_page(html);
@@ -203,7 +214,7 @@ fn parse_tag(html: &str) -> TemplateNode {
     // pass first [
     let mut i = 1 + tag_open_token_raw.len();
 
-    let single_line_tag = html_bytes[i-1] == b'/';
+    let single_line_tag = html_bytes[i - 1] == b'/';
     let tag_open_token = String::from_utf8(tag_open_token_raw).unwrap();
 
     // pass ending ]
@@ -246,8 +257,6 @@ fn parse_tag(html: &str) -> TemplateNode {
     if !single_line_tag {
         // read tag closing, for validation only
         if !compare(&html[(i - end_name.len())..html.len()], &end_name) {
-            println!("{}", end_name);
-            println!("{}", &html[i..html.len()]);
             panic!("Wrong closing tag");
         }
     }
@@ -260,7 +269,7 @@ fn is_end_tag(html: &str) -> bool {
 
     for tag in tags {
         if html.starts_with(tag) {
-            return true
+            return true;
         }
     }
 
@@ -276,21 +285,21 @@ fn build_result(tag_open_token: &str, children: Vec<TemplateNode>, size: usize) 
             var_name: params.0,
             param_name: params.1,
             children,
-            size
+            size,
         }),
-        "if" => TemplateNode::CtchiIfTagNode(IfTag{
+        "if" => TemplateNode::CtchiIfTagNode(IfTag {
             var_name: params.0,
             children,
-            size
+            size,
         }),
-        "import" => TemplateNode::CtchiImportTagNode(ImportTag{
+        "import" => TemplateNode::CtchiImportTagNode(ImportTag {
             path: params.0,
-            size
+            size,
         }),
         "template" => TemplateNode::from_tag(TemplateTag {
             name: tag_name.to_string(),
             children,
-            size
+            size,
         }),
         _ => panic!("Unknown tag"),
     }
@@ -306,7 +315,7 @@ fn parse_tag_attributes(tag: &str) -> (String, String) {
     match tokens[0] {
         "for" => (tokens[1].to_string(), tokens[3].to_string()),
         "if" => (tokens[1].to_string(), "".to_string()),
-        "import" => (tokens[1][1..(tokens[1].len()-2)].to_string(), "".to_string()),
+        "import" => (tokens[1][1..(tokens[1].len() - 2)].to_string(), "".to_string()),
         _ => ("".to_string(), "".to_string())
     }
 }
@@ -328,7 +337,7 @@ fn parse_value(html: &str) -> TemplateNode {
     let mut value = Vec::new();
     let mut i = 2;
 
-    while html_bytes[i] != b']' || html_bytes[i+1] != b']' {
+    while html_bytes[i] != b']' || html_bytes[i + 1] != b']' {
         value.push(html_bytes[i]);
         i += 1;
     };
