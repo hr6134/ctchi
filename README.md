@@ -92,7 +92,7 @@ What kind of tags it has.
 4. [import "./base.html" /]
 5. [[value]]
 
-`[templates]` is root tag, if you have it on the page it is html page with tags, 
+`[template]` is root tag, if you have it on the page it is html page with tags, 
 otherwise ctchi would consider it plane html page.
 
 `[for]` tag is for loops. You can pass values (vector of strings) in context and it write 
