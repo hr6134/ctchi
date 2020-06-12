@@ -25,7 +25,10 @@
 
 <ul>
 [for i in numbers]
-    <li>[[i]] Point</li>
+    [for j in names]
+        <li>[[i]]: [[j]]</li>
+    [endfor]
+    [[my_name]]
 [endfor]
 </ul>
 

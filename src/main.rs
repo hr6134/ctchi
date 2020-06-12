@@ -14,6 +14,7 @@ fn index()-> String {
     context.insert("test".to_string(), Context::BooleanValue(true));
     context.insert("my_name".to_string(), Context::SingleValue("Leonid Toshchev".to_string()));
     context.insert("numbers".to_string(), Context::MultiValue(vec!("1".to_string(), "2".to_string(), "3".to_string())));
+    context.insert("names".to_string(), Context::MultiValue(vec!("Leonid".to_string(), "Daria".to_string(), "Ilya".to_string())));
     render!("index.html", context)
 }
 

@@ -4,6 +4,7 @@ use std::fs;
 use regex::Regex;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub enum Context {
     BooleanValue(bool),
     SingleValue(String),
@@ -88,15 +89,18 @@ impl Content for ForTag {
         let mut result = Vec::new();
 
         let default_value = Context::MultiValue(Vec::new());
-        let context_value = match context.get(&self.param_name).unwrap_or(&default_value) {
+        let context_values = match context.get(&self.param_name).unwrap_or(&default_value) {
             Context::MultiValue(e) => e,
             _ => panic!("For tag should have multivalue in context"),
         };
 
-        for v in context_value {
+        for value in context_values {
             let mut inner_context = HashMap::<String, Context>::new();
             let local_var_name = &self.var_name;
-            inner_context.insert(local_var_name.to_string(), Context::SingleValue(v.to_string()));
+            inner_context.insert(local_var_name.to_string(), Context::SingleValue(value.to_string()));
+            for (k, v) in context {
+                inner_context.insert(k.to_string(), v.clone());
+            }
             for c in &self.children {
                 result.append(&mut c.get_content(&inner_context));
             }
