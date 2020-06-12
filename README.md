@@ -1,4 +1,4 @@
-##Home made web framework written in Rust
+## Home made web framework written in Rust
 What you are looking at is my homemade web framework. It started as pet project 
 and probably continue to be one, but now it has enough features to start simple 
 web page, it even has templates. 
@@ -8,7 +8,7 @@ No middleware. List could go on and on.
 
 But, I have personal page that runs on this framework at http://glotitude.datamonkey.pro/. Feel free to look at it.
 
-###Fast start
+### Fast start
 * You should use nightly build because of `concat_idents!` macro
 * Add dependencies to ctchi framework
 ```
@@ -51,7 +51,7 @@ fn main() {
 cargo run
 ```
 
-###Configuration
+### Configuration
 Ctchi has just a few configuration options:
 1. `bind_path` - ip address and port for the server (default is `127.0.0.1:8080`)
 2. `base_path` - path to the folder with templates (default is current_dir + `/src/pages/`)
@@ -59,10 +59,10 @@ Ctchi has just a few configuration options:
 
 
 There are several ways to change configuration of the server:
-####Change configuration file
+#### Change configuration file
 You should create it at `/etc/ctchi/conf.txt`. You can overwrite only 2 
 properties there `bind_path` and `base_path`.
-####Configuration singleton
+#### Configuration singleton
 You can get ctchi configuration in any place of your program by importing 
 `use crate::core::config::get_configuration;`
 Next you can get a reader and then mutex for configuration:
@@ -83,7 +83,7 @@ scope program wouldn't work. So, if you absolutely sure that there wouldn't
 be second call for configuration you don't need `drop`, if not, better to 
 call it explicitly.
 
-###Template
+### Template
 Ctchi has html templates engine. It isn't sophisticated, but it has all core features you need.
 What kind of tags it has.
 1. [templates][endtemplates]
@@ -109,7 +109,7 @@ Every rule about tags applies to that page as well.
 
 Every tag except import and value tags, should has closed part.
 
-####Example
+#### Example
 Remember, all html pages should be in `src/pages` folder by default. 
 Now, say, we have same header for every page. Let's put it into `header.html`:
 ```html
