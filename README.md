@@ -86,7 +86,7 @@ call it explicitly.
 ###Template
 Ctchi has html templates engine. It isn't sophisticated, but it has all core features you need.
 What kind of tags it has.
-1. [templates][endtemplates]
+1. [template][endtemplate]
 2. [for i in values][endfor]
 3. [if value][endif]
 4. [import "./base.html" /]
