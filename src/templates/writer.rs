@@ -1,4 +1,4 @@
-use crate::templates::parser::{TemplateNode, Content, Context};
+use crate::templates::parser::{TemplateNode, WithContent, Context};
 use std::collections::HashMap;
 
 

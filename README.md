@@ -89,8 +89,9 @@ What kind of tags it has.
 1. [template][endtemplate]
 2. [for i in values][endfor]
 3. [if value][endif]
-4. [import "./base.html" /]
-5. [[value]]
+4. [code][endcode]
+5. [import "./base.html" /]
+6. [[value]]
 
 `[template]` is root tag, if you have it on the page it is html page with tags, 
 otherwise ctchi would consider it plane html page.
@@ -101,6 +102,9 @@ inner part so many time as values length.
 `[if]` takes boolean value from context and writes inner block if values is true. 
 It hasn't `else` clause. Is can't take expression. So, the whole logic should be 
 on backend.
+
+`[code]` consider everything inside as pure html. Great for long code snippets, since you 
+don't need to escape every square bracket in it. 
 
 `[import]` gets page from specified page and import it into current template. 
 Every rule about tags applies to that page as well.

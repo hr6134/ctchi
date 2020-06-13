@@ -3,6 +3,7 @@ use crate::core::config::get_configuration;
 use std::fs;
 use regex::Regex;
 use std::collections::HashMap;
+use std::collections::hash_map::RandomState;
 
 #[derive(Clone)]
 pub enum Context {
@@ -11,8 +12,12 @@ pub enum Context {
     MultiValue(Vec<String>),
 }
 
-pub trait Content {
+pub trait WithContent {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8>;
+}
+
+pub trait Sizable {
+    fn size(&self) -> usize;
 }
 
 #[derive(Debug)]
@@ -22,10 +27,25 @@ pub enum TemplateNode {
     CtchiForTagNode(ForTag),
     CtchiTemplateTagNode(TemplateTag),
     CtchiValueNode(CtchiValue),
+    CtchiCodeTagNode(CodeTag),
     HtmlNode(Html),
 }
 
-impl Content for TemplateNode {
+impl Sizable for TemplateNode {
+    fn size(&self) -> usize {
+        match self {
+            TemplateNode::CtchiTemplateTagNode(e) => e.size,
+            TemplateNode::HtmlNode(e) => e.value.len(),
+            TemplateNode::CtchiValueNode(e) => e.value.len() + 4,
+            TemplateNode::CtchiForTagNode(e) => e.size,
+            TemplateNode::CtchiIfTagNode(e) => e.size,
+            TemplateNode::CtchiImportTagNode(e) => e.size,
+            TemplateNode::CtchiCodeTagNode(e) => e.size,
+        }
+    }
+}
+
+impl WithContent for TemplateNode {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         match self {
             TemplateNode::CtchiTemplateTagNode(e) => e.get_content(context),
@@ -34,6 +54,7 @@ impl Content for TemplateNode {
             TemplateNode::CtchiForTagNode(e) => e.get_content(context),
             TemplateNode::CtchiIfTagNode(e) => e.get_content(context),
             TemplateNode::CtchiImportTagNode(e) => e.get_content(context),
+            TemplateNode::CtchiCodeTagNode(e) => e.get_content(context),
         }
     }
 }
@@ -64,7 +85,7 @@ pub struct TemplateTag {
     pub size: usize,
 }
 
-impl Content for TemplateTag {
+impl WithContent for TemplateTag {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
@@ -84,7 +105,7 @@ pub struct ForTag {
     pub size: usize,
 }
 
-impl Content for ForTag {
+impl WithContent for ForTag {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
@@ -117,7 +138,7 @@ pub struct IfTag {
     pub size: usize,
 }
 
-impl Content for IfTag {
+impl WithContent for IfTag {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let mut result = Vec::new();
 
@@ -143,7 +164,7 @@ pub struct ImportTag {
     pub size: usize,
 }
 
-impl Content for ImportTag {
+impl WithContent for ImportTag {
     fn get_content(&self, context: &HashMap<String, Context>) -> Vec<u8> {
         let node = parse_file(&self.path);
         node.get_content(context)
@@ -155,7 +176,7 @@ pub struct CtchiValue {
     pub value: String,
 }
 
-impl Content for CtchiValue {
+impl WithContent for CtchiValue {
     fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
         let default_value = Context::SingleValue(String::new());
 
@@ -169,11 +190,29 @@ impl Content for CtchiValue {
 }
 
 #[derive(Debug)]
+pub struct CodeTag {
+    pub children: Vec<TemplateNode>,
+    pub size: usize,
+}
+
+impl WithContent for CodeTag {
+    fn get_content(&self, _context: &HashMap<String, Context, RandomState>) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        for c in &self.children {
+            result.append(&mut c.get_content(_context));
+        }
+
+        result
+    }
+}
+
+#[derive(Debug)]
 pub struct Html {
     pub value: String,
 }
 
-impl Content for Html {
+impl WithContent for Html {
     fn get_content(&self, _context: &HashMap<String, Context>) -> Vec<u8> {
         Vec::from(self.value.as_bytes())
     }
@@ -224,8 +263,20 @@ fn parse_tag(html: &str) -> TemplateNode {
     // pass ending ]
     i += 1;
 
-    // look up for children only if we haven't single line tag
-    if !single_line_tag {
+    // if we have code tag, everything inside is html code
+    if tag_open_token.starts_with("code") {
+        let mut value = Vec::new();
+        while !is_end_of_specific_tag(&html[i..html.len()], "[endcode]") {
+            value.push(html_bytes[i]);
+            i += 1;
+        }
+
+        let child = TemplateNode::HtmlNode(Html {
+            value: String::from_utf8(value).unwrap()
+        });
+
+        children.push(child);
+    } else if !single_line_tag { // look up for children only if we haven't single line tag
         // read children
         while !is_end_tag(&html[i..html.len()]) {
             let child = if html_bytes[i] == b'[' && html_bytes[i + 1] == b'[' {
@@ -236,15 +287,7 @@ fn parse_tag(html: &str) -> TemplateNode {
                 parse_text(&html[i..html.len()])
             };
 
-            let size = match &child {
-                TemplateNode::CtchiTemplateTagNode(e) => e.size,
-                TemplateNode::HtmlNode(e) => e.value.len(),
-                TemplateNode::CtchiValueNode(e) => e.value.len() + 4,
-                TemplateNode::CtchiForTagNode(e) => e.size,
-                TemplateNode::CtchiIfTagNode(e) => e.size,
-                TemplateNode::CtchiImportTagNode(e) => e.size,
-            };
-            i += size;
+            i += child.size();
 
             children.push(child);
         }
@@ -268,8 +311,12 @@ fn parse_tag(html: &str) -> TemplateNode {
     result
 }
 
+fn is_end_of_specific_tag(html: &str, tag: &str) -> bool {
+    html.starts_with(tag)
+}
+
 fn is_end_tag(html: &str) -> bool {
-    let tags = vec!("[endfor]", "[endtemplate]", "[endif]");
+    let tags = vec!("[endfor]", "[endtemplate]", "[endif]", "[endcode]");
 
     for tag in tags {
         if html.starts_with(tag) {
@@ -302,6 +349,10 @@ fn build_result(tag_open_token: &str, children: Vec<TemplateNode>, size: usize) 
         }),
         "template" => TemplateNode::from_tag(TemplateTag {
             name: tag_name.to_string(),
+            children,
+            size,
+        }),
+        "code" => TemplateNode::CtchiCodeTagNode(CodeTag {
             children,
             size,
         }),

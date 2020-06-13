@@ -15,6 +15,29 @@
     но начинается с end. Например, &#x5B;template&#x5D; &#x5B;endtemplate&#x5D;.
 </p>
 
+<code style="text-align: left; font-weight: normal">
+    <pre>
+        [code]
+        #[route("/")]
+        fn index()-> String {
+            render!("index.html")
+        }
+
+        #[route("/blog/")]
+        fn blog_list()-> String {
+            render!("blog.html")
+        }
+
+
+        #[route("/blog/{id}/")]
+        fn blog(id: &str) -> String {
+            let page = &format!("blog/{}.html", id);
+            render!(page)
+        }
+        [endcode]
+    </pre>
+</code>
+
 [if test]
 <p>
     Видно только под ифом
