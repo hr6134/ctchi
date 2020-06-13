@@ -13,7 +13,7 @@ But, I have personal page that runs on this framework at http://glotitude.datamo
 * Add dependencies to ctchi framework
 ```
 [dependencies]
-ctchi = "0.13.0"
+ctchi = "0.18.0"
 ctchi_codegen = "0.2.0"
 regex = "1"
 ```
@@ -111,7 +111,7 @@ Every rule about tags applies to that page as well.
 
 `[[value]]`. Plain value or variable of for loop should be taken in double square brackets.
 
-Every tag except import and value tags, should has closed part.
+Every tag except import and value tags, should has closing part.
 
 #### Example
 Remember, all html pages should be in `src/pages` folder by default. 
