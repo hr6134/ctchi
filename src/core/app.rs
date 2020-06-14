@@ -1,6 +1,7 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write, BufReader, BufRead};
 use std::sync::Arc;
+use std::collections::HashMap;
 
 use super::routes::Routes;
 use super::http::{HttpMethod, Request};
@@ -20,18 +21,9 @@ fn read_static(file_pth: &str) -> impl Fn(&str) -> String + '_ {
 
 impl RequestHandler {
     fn handle_request(&self, stream: TcpStream, routes: Arc<Routes>) {
-        let mut request_input = Vec::new();
         let mut reader = BufReader::new(stream);
 
-        for line in reader.by_ref().lines() {
-            let l = line.unwrap();
-            request_input.extend_from_slice(l.as_bytes());
-            if l == String::from("") {
-                break;
-            }
-        };
-
-        let request = self.parse_request(&request_input);
+        let request = self.parse_request(&mut reader);
 
         let config_reader = get_configuration();
         let config = config_reader.inner.lock().unwrap();
@@ -64,17 +56,27 @@ impl RequestHandler {
 
     /// Parse stream of bytes in Request object.
     /// Gets URI, HTTP method, headers and body.
-    fn parse_request(&self, request: &[u8]) -> Request {
-        let request_str = String::from_utf8_lossy(request);
-        println!("Request: {}", request_str);
-        let blocks = request_str.split("\r\n").collect::<Vec<&str>>();
-        let method = blocks[0].split(" ").collect::<Vec<&str>>();
+    fn parse_request(&self, reader: &mut BufReader<TcpStream>) -> Request {
+        let mut lines = reader.by_ref().lines();
+
+        // get method line, it should be in every request, so unwrapping is safe
+        let method_line = lines.next().unwrap().unwrap();
+        let method = method_line.split(" ").collect::<Vec<&str>>();
         let http_method = HttpMethod::parse(method[0]);
 
-        let headers = if blocks.len() > 1 {
-            blocks[1].to_string()
-        } else {
-            String::new()
+        let mut headers = HashMap::<String, String>::new();
+        for line in lines {
+            let l = line.unwrap();
+
+            // fixme we will miss body in this case
+            if l == String::from("") {
+                break;
+            }
+
+            let parts = l.split(":").collect::<Vec<&str>>();
+            if parts.len() == 2 {
+                headers.insert(parts[0].to_string(), parts[1].to_string());
+            }
         };
 
         let mut url = if method.len() > 1 {
