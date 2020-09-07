@@ -8,6 +8,8 @@ use ctchi_codegen::route;
 use std::collections::HashMap;
 use ctchi::templates::parser::Context;
 
+use ctchi::log::logger;
+
 #[route("/")]
 fn index()-> String {
     let mut context = HashMap::<String, Context>::new();
@@ -25,6 +27,10 @@ fn blog(id: &str) -> String {
 }
 
 fn main() {
+    logger::init();
+
+    log::info!("Ctchi is running!");
+
     let mut routes = Routes::new();
     routes.add_route(routes!(index)());
     routes.add_route(routes!(blog)());
