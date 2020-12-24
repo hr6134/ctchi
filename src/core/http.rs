@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 /// Represent HTTP method + unknown value in case we are missing something in enum or
 /// client send us wrong request.
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum HttpMethod {
     GET,
     POST,

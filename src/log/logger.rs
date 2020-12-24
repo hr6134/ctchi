@@ -1,4 +1,5 @@
 use log::{Record, Level, Metadata, SetLoggerError, LevelFilter};
+use chrono::{Datelike, Timelike, Utc};
 
 struct SimpleLogger;
 
@@ -9,7 +10,7 @@ impl log::Log for SimpleLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            println!("{} - {}", record.level(), record.args());
+            println!("{}: {} - {}", Utc::now(), record.level(), record.args());
         }
     }
 

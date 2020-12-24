@@ -41,5 +41,5 @@ fn main() {
         Err(err) => format!("Can't start server! Because '{}'", err)
     };
 
-    println!("{}", server_result);
+    log::info!("{}", server_result);
 }

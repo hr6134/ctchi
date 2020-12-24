@@ -25,6 +25,11 @@ impl RequestHandler {
 
         let request = self.parse_request(&mut reader);
 
+        log::info!("Request: {:?} {}", request.method, request.url);
+        if !request.body.is_empty() {
+            log::info!("{}", request.body);
+        }
+
         let config_reader = get_configuration();
         let config = config_reader.inner.lock().unwrap();
 
@@ -40,17 +45,17 @@ impl RequestHandler {
             "HTTP/1.1 200 OK\r\n\r\n{}",
             content
         );
-        println!("Response: {}", response);
+        log::info!("Response: {}", response);
 
         let mut reader_stream = reader.into_inner();
         let result = reader_stream.write(response.as_bytes());
         result.unwrap_or_else(|error| {
-            println!("{}", error);
+            log::info!("{}", error);
             0
         });
 
         reader_stream.flush().unwrap_or_else(|error| {
-            println!("{}", error);
+            log::info!("{}", error);
         });
     }
 
