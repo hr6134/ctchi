@@ -26,13 +26,15 @@ impl log::Log for SimpleLogger {
 
             let config_reader = get_configuration();
             let config = config_reader.inner.lock().unwrap();
+            let log_path = config.log_path.to_string();
+            drop(config);
+
             // fixme remove unwrap
             let mut file = OpenOptions::new()
                 .append(true)
                 .create(true)
-                .open(&config.log_path)
+                .open(&log_path)
                 .unwrap();
-            drop(config);
 
             file.write_all(log_message.as_bytes());
         }

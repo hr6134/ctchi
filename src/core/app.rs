@@ -32,15 +32,13 @@ impl RequestHandler {
 
         let config_reader = get_configuration();
         let config = config_reader.inner.lock().unwrap();
+        let tmp_base_path = config.base_path.to_string();
+        let prefix = config.static_uri_pref.to_string();
+        drop(config);
 
-        let prefix = &config.static_uri_pref;
-        let content = if request.url.starts_with(prefix) {
-            // copy to separate variable, so we can drop config
-            let tmp_base_path = config.base_path.to_string();
-            drop(config);
+        let content = if request.url.starts_with(&prefix) {
             read_static(&request.url)(tmp_base_path.as_str())
         } else {
-            drop(config);
             (routes.get_route(request.url.as_ref()).render_action)(request.url.as_ref())
         };
 
