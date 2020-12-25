@@ -18,7 +18,7 @@ impl Config {
 
     fn parse_config(path: &str) -> Config {
         let mut bind_path = "127.0.0.1:8080";
-        let mut log_path = "/Users/glotitude/log/ctchi/server.log";
+        let mut log_path = "/var/log/ctchi/server.log";
 
         let config_content = match fs::read_to_string(path) {
             Ok(content) => content,
