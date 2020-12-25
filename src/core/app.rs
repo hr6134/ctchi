@@ -35,7 +35,10 @@ impl RequestHandler {
 
         let prefix = &config.static_uri_pref;
         let content = if request.url.starts_with(prefix) {
-            read_static(&request.url)(config.base_path.as_ref())
+            // copy to separate variable, so we can drop config
+            let tmp_base_path = config.base_path.to_string();
+            drop(config);
+            read_static(&request.url)(tmp_base_path.as_str())
         } else {
             drop(config);
             (routes.get_route(request.url.as_ref()).render_action)(request.url.as_ref())
@@ -112,10 +115,12 @@ pub struct Ctchi {
 }
 
 impl Ctchi {
-    /// Create new application with specified configuration.
+    /// Create new application with specified routes.
+    ///
+    /// Configuration gets by `ctchi::core::ctchi::get_configuration()` singleton.
     ///
     /// # Arguments:
-    /// * `config` - configuration for application. `ctchi::core::ctchi::Config`
+    /// * `routes` - list of routes. `ctchi::core::ctchi::Routes`
     ///
     pub fn new(routes: Routes) -> Ctchi {
         Ctchi {
@@ -129,20 +134,32 @@ impl Ctchi {
     /// # Examples:
     ///
     /// ```rust,ignore
-    ///   use ctchi::core::ctchi::{Config, Ctchi};
-    ///   use ctchi::core::routes::Routes;
+    /// #![feature(concat_idents)]
+    /// #[macro_use]
+    /// extern crate ctchi;
     ///
-    ///   let mut routes = Routes::new();
-    ///   routes.add_route("/", "/src/pages.static/index.html");
+    /// use ctchi::core::app::Ctchi;
+    /// use ctchi::core::routes::{Routes, Route};
     ///
-    ///   let configuration = Config {
-    ///        bind_path: "127.0.0.1:8080",
-    ///        base_path: "/var/www/",
-    ///        routes,
-    ///   };
+    /// use ctchi_codegen::route;
     ///
-    ///   let server = Ctchi::new(configuration);
-    ///   server.start();
+    /// #[route("/")]
+    /// fn index() -> String {
+    ///     render!("index.html")
+    /// }
+    ///
+    /// fn main() {
+    ///     let mut routes = Routes::new();
+    ///     // add route to your controller
+    ///     routes.add_route(routes!(index)());
+    ///
+    ///     // create and run local server
+    ///     let server = Ctchi::new(routes);
+    ///     let server_result = match server.start() {
+    ///         Ok(()) => "Ctchi application server is successfully running!".to_string(),
+    ///         Err(err) => format!("Can't start server! Because '{}'", err)
+    ///     };
+    /// }
     /// ```
     pub fn start(self) -> std::io::Result<()> {
         let config_reader = get_configuration();

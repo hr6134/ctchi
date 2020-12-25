@@ -8,6 +8,7 @@ pub struct Config {
     pub bind_path: String,
     pub base_path: String,
     pub static_uri_pref: String,
+    pub log_path: String,
 }
 
 impl Config {
@@ -16,7 +17,8 @@ impl Config {
     }
 
     fn parse_config(path: &str) -> Config {
-        let mut bind_path ="127.0.0.1:8080";
+        let mut bind_path = "127.0.0.1:8080";
+        let mut log_path = "/Users/glotitude/log/ctchi/server.log";
 
         let config_content = match fs::read_to_string(path) {
             Ok(content) => content,
@@ -38,12 +40,16 @@ impl Config {
             if cols[0] == "base_path" {
                 templates_dir = cols[1].to_string();
             }
+            if cols[0] == "log_path" {
+                log_path = cols[1];
+            }
         }
 
         Config {
             bind_path: bind_path.to_string(),
             base_path: templates_dir,
             static_uri_pref: "/static/".to_string(),
+            log_path: log_path.to_string(),
         }
     }
 }

@@ -1,6 +1,12 @@
 use log::{Record, Level, Metadata, SetLoggerError, LevelFilter};
 use chrono::{Datelike, Timelike, Utc};
 
+use std::fs::{File, OpenOptions};
+use std::io::prelude::*;
+use std::path::Path;
+
+use crate::core::config::get_configuration;
+
 struct SimpleLogger;
 
 impl log::Log for SimpleLogger {
@@ -10,7 +16,25 @@ impl log::Log for SimpleLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            println!("{}: {} - {}", Utc::now(), record.level(), record.args());
+            let log_message = format!(
+                "{}: {} - {}\n",
+                Utc::now(),
+                record.level(),
+                record.args()
+            );
+            println!("{}", log_message);
+
+            let config_reader = get_configuration();
+            let config = config_reader.inner.lock().unwrap();
+            // fixme remove unwrap
+            let mut file = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(&config.log_path)
+                .unwrap();
+            drop(config);
+
+            file.write_all(log_message.as_bytes());
         }
     }
 
