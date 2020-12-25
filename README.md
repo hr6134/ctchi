@@ -65,7 +65,7 @@ You should create it at `/etc/ctchi/conf.txt`. You can overwrite only 2
 properties there `bind_path` and `base_path`.
 #### Configuration singleton
 You can get ctchi configuration in any place of your program by importing 
-`use crate::core::config::get_configuration;`
+`use ctchi::core::config::get_configuration;`
 Next you can get a reader and then mutex for configuration:
 ```rust
 // get reader
