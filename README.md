@@ -56,6 +56,7 @@ Ctchi has just a few configuration options:
 1. `bind_path` - ip address and port for the server (default is `127.0.0.1:8080`)
 2. `base_path` - path to the folder with templates (default is current_dir + `/src/pages/`)
 3. `static_uri_pref` - url prefix for static files, css/js/images etc (default is `static`)
+4. `log_path` - path on the file system to the log file.
 
 
 There are several ways to change configuration of the server:
@@ -112,6 +113,31 @@ Every rule about tags applies to that page as well.
 `[[value]]`. Plain value or variable of for loop should be taken in double square brackets.
 
 Every tag except import and value tags, should has closing part.
+
+#### Logging
+If you want to write a log of your requests and responses, you should add logger.init 
+into your main function.
+```rust
+use ctchi::log::logger;
+
+fn main() {
+    logger::init();
+    // ... other code
+}
+```
+
+Configuration has a `log_path` field, you can change it either through configuration file,
+either through configuration object :) 
+```rust
+fn main() {
+    // ... other code
+    let config_reader = get_configuration();
+    let mut config = config_reader.inner.lock().unwrap();
+    config.log_path = "/Users/glotitude/log/ctchi/server.log".to_string();
+    drop(config);
+    // ... other code
+}
+```
 
 #### Example
 Remember, all html pages should be in `src/pages` folder by default. 

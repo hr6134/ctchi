@@ -66,6 +66,9 @@ impl RequestHandler {
         let mut lines = reader.by_ref().lines();
 
         // get method line, it should be in every request, so unwrapping is safe
+        // fixme thread '<unnamed>' panicked at 'called `Option::unwrap()` on a `None` value',
+        // /Users/glotitude/.cargo/registry/src/github.com-1ecc6299db9ec823/ctchi-0.19.0/src/core/app.rs:69:40
+        // for some reason
         let method_line = lines.next().unwrap().unwrap();
         let method = method_line.split(" ").collect::<Vec<&str>>();
         let http_method = HttpMethod::parse(method[0]);
