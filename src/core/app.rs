@@ -167,15 +167,17 @@ impl Ctchi {
     pub fn start(self) -> std::io::Result<()> {
         let config_reader = get_configuration();
         let config = config_reader.inner.lock().unwrap();
+        let bind_path= config.bind_path.to_string();
+        let log_enabled = config.log_enabled;
+        drop(config);
 
-        if config.log_enabled {
+        if log_enabled {
             logger::init();
         }
 
         log::info!("Ctchi is running!");
 
-        let listener = TcpListener::bind(&config.bind_path)?;
-        drop(config);
+        let listener = TcpListener::bind(bind_path)?;
         let routes = Arc::new(self.routes);
 
         let pool = ThreadPool::new(4);
