@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use super::routes::Routes;
 use super::http::{HttpMethod, Request};
 use super::thread_pool::{ThreadPool};
+
 use crate::core::config::get_configuration;
+use crate::log::logger;
 
 struct RequestHandler;
 
@@ -163,6 +165,10 @@ impl Ctchi {
     /// }
     /// ```
     pub fn start(self) -> std::io::Result<()> {
+        logger::init();
+
+        log::info!("Ctchi is running!");
+
         let config_reader = get_configuration();
         let config = config_reader.inner.lock().unwrap();
 
