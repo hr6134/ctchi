@@ -9,6 +9,7 @@ pub struct Config {
     pub base_path: String,
     pub static_uri_pref: String,
     pub log_path: String,
+    pub log_enabled: bool,
 }
 
 impl Config {
@@ -19,6 +20,7 @@ impl Config {
     fn parse_config(path: &str) -> Config {
         let mut bind_path = "127.0.0.1:8080";
         let mut log_path = "/var/log/ctchi/server.log";
+        let mut log_enabled = false;
 
         let config_content = match fs::read_to_string(path) {
             Ok(content) => content,
@@ -43,6 +45,13 @@ impl Config {
             if cols[0] == "log_path" {
                 log_path = cols[1];
             }
+            if cols[0] == "log_enabled" {
+                log_enabled = match cols[1] {
+                    "0" => false,
+                    "1" => true,
+                    _ => panic!("Wrong log value '{}'", cols[1])
+                }
+            }
         }
 
         Config {
@@ -50,6 +59,7 @@ impl Config {
             base_path: templates_dir,
             static_uri_pref: "/static/".to_string(),
             log_path: log_path.to_string(),
+            log_enabled,
         }
     }
 }

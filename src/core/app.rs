@@ -165,12 +165,14 @@ impl Ctchi {
     /// }
     /// ```
     pub fn start(self) -> std::io::Result<()> {
-        logger::init();
-
-        log::info!("Ctchi is running!");
-
         let config_reader = get_configuration();
         let config = config_reader.inner.lock().unwrap();
+
+        if config.log_enabled {
+            logger::init();
+        }
+
+        log::info!("Ctchi is running!");
 
         let listener = TcpListener::bind(&config.bind_path)?;
         drop(config);
