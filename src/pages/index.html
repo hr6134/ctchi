@@ -1,0 +1,60 @@
+[template]
+<html lang="en">
+    [import "header.html"/]
+<body>
+<p>
+    Идея, что переписать существующий код легко, была наивной. Я потратил ещё один вечер на то, чтобы научиться
+    парсить свои теги шаблонизатора и собирать дерево. Теги были следующие: template (корневой тег, который хранит
+    в себе всю страницу, если его нет, вся страница считается обычным html тегом, т.е. просто текст хранящийся одной
+    нодой), import (позволяет вставлять другую страницу, она тоже может быть как шаблоном, так и обычным html файлом),
+    [for i in list]
+        [[value]]
+    [endfor]
+    for (цикл по списку, \[for i in list\]), if (рендерит вложенный контент, если переданная ему переменная равна true)
+    и обычная переменная (&#x5B;&#x5B;value&#x5D;&#x5D;). Каждый тег кроме import и value имеет закрывающийся тег, который выглядит так же,
+    но начинается с end. Например, &#x5B;template&#x5D; &#x5B;endtemplate&#x5D;.
+</p>
+
+<code style="text-align: left; font-weight: normal">
+    <pre>
+        [code]
+        #[route("/")]
+        fn index()-> String {
+            render!("index.html")
+        }
+
+        #[route("/blog/")]
+        fn blog_list()-> String {
+            render!("blog.html")
+        }
+
+
+        #[route("/blog/{id}/")]
+        fn blog(id: &str) -> String {
+            let page = &format!("blog/{}.html", id);
+            render!(page)
+        }
+        [endcode]
+    </pre>
+</code>
+
+[if test]
+<p>
+    Видно только под ифом
+</p>
+[endif]
+
+[[my_name]]
+
+<ul>
+[for i in numbers]
+    [for j in names]
+        <li>[[i]]: [[j]]</li>
+    [endfor]
+    [[my_name]]
+[endfor]
+</ul>
+
+</body>
+</html>
+[endtemplate]

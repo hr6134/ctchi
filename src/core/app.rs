@@ -4,10 +4,12 @@ use std::fs;
 use std::sync::Arc;
 use std::env::current_dir;
 
+
 use super::routes::Routes;
 use super::http::{HttpMethod, Request};
 use super::thread_pool::{ThreadPool};
 use std::path::PathBuf;
+
 
 pub struct Config {
     pub bind_path: &'static str,
@@ -58,48 +60,87 @@ fn read_static(file_pth: &str) -> impl Fn(&str) -> String + '_ {
 }
 
 impl RequestHandler {
-    fn handle_request(&self, mut stream: TcpStream, config: Arc<Config>, routes: Arc<Routes>) {
-        let mut buf = [0; 512];
+    fn handle_request(&self, stream: TcpStream, routes: Arc<Routes>) {
+        let mut reader = BufReader::new(stream);
 
-        stream.read(&mut buf);
-        let request = self.parse_request(&buf);
+        let request = self.parse_request(&mut reader);
 
-        let content = if request.url.starts_with(config.static_uri_pref) {
-            read_static(&request.url)(config.base_path)
+        log::info!("Request: {:?} {}", request.method, request.url);
+        if !request.body.is_empty() {
+            log::info!("{}", request.body);
+        }
+
+        let config_reader = get_configuration();
+        let config = config_reader.inner.lock().unwrap();
+        let tmp_base_path = config.base_path.to_string();
+        let prefix = config.static_uri_pref.to_string();
+        drop(config);
+
+        let content = if request.url.starts_with(&prefix) {
+            read_static(&request.url)(tmp_base_path.as_str())
         } else {
             (routes.get_route(request.url.as_ref()).render_action)(config.base_path)
         };
 
-        let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
-        stream.write(response.as_bytes()).unwrap_or_else(|error| {
-            println!("{}", error);
+        let response = format!(
+            "HTTP/1.1 200 OK\r\n\r\n{}",
+            content
+        );
+        log::info!("Response: {}", response);
+
+        let mut reader_stream = reader.into_inner();
+        let result = reader_stream.write(response.as_bytes());
+        result.unwrap_or_else(|error| {
+            log::info!("{}", error);
             0
         });
-        stream.flush().unwrap_or_else(|error| {
-            println!("{}", error);
+
+        reader_stream.flush().unwrap_or_else(|error| {
+            log::info!("{}", error);
         });
     }
 
     /// Parse stream of bytes in Request object.
     /// Gets URI, HTTP method, headers and body.
-    fn parse_request(&self, request: &[u8]) -> Request {
-        let request_str = String::from_utf8_lossy(request);
-        println!("Request: {}", request_str);
-        let blocks = request_str.split("\r\n").collect::<Vec<&str>>();
-        let method = blocks[0].split(" ").collect::<Vec<&str>>();
+    fn parse_request(&self, reader: &mut BufReader<TcpStream>) -> Request {
+        let mut lines = reader.by_ref().lines();
+
+        // get method line, it should be in every request, so unwrapping is safe
+        // fixme thread '<unnamed>' panicked at 'called `Option::unwrap()` on a `None` value',
+        // /Users/glotitude/.cargo/registry/src/github.com-1ecc6299db9ec823/ctchi-0.19.0/src/core/app.rs:69:40
+        // for some reason
+        let method_line = lines.next().unwrap().unwrap();
+        let method = method_line.split(" ").collect::<Vec<&str>>();
         let http_method = HttpMethod::parse(method[0]);
 
-        let headers = if blocks.len() > 1 {
-            blocks[1].to_string()
-        } else {
-            String::new()
+        let mut headers = HashMap::<String, String>::new();
+        for line in lines {
+            let l = line.unwrap();
+
+            // fixme we will miss body in this case
+            if l == String::from("") {
+                break;
+            }
+
+            let parts = l.split(":").collect::<Vec<&str>>();
+            if parts.len() == 2 {
+                headers.insert(parts[0].to_string(), parts[1].to_string());
+            }
         };
 
-        let url = if method.len() > 1 {
+        let mut url = if method.len() > 1 {
             method[1].to_string()
         } else {
             String::new()
         };
+
+        if !url.ends_with("/")
+            && !url.ends_with(".css")
+            && !url.ends_with(".js")
+            && !url.ends_with(".jpg")
+        {
+            url = format!("{}/", url);
+        }
 
         Request {
             method: http_method,
@@ -112,18 +153,23 @@ impl RequestHandler {
 
 pub struct Ctchi {
     config: Config,
+
     routes: Routes,
 }
 
 impl Ctchi {
-    /// Create new application with specified configuration.
+    /// Create new application with specified routes.
+    ///
+    /// Configuration gets by `ctchi::core::ctchi::get_configuration()` singleton.
     ///
     /// # Arguments:
-    /// * `config` - configuration for application. `ctchi::core::ctchi::Config`
+    /// * `routes` - list of routes. `ctchi::core::ctchi::Routes`
     ///
+
     pub fn new(config: Config, routes: Routes) -> Ctchi {
         Ctchi {
             config,
+
             routes
         }
     }
@@ -134,24 +180,48 @@ impl Ctchi {
     /// # Examples:
     ///
     /// ```rust,ignore
-    ///   use ctchi::core::ctchi::{Config, Ctchi};
-    ///   use ctchi::core::routes::Routes;
+    /// #![feature(concat_idents)]
+    /// #[macro_use]
+    /// extern crate ctchi;
     ///
-    ///   let mut routes = Routes::new();
-    ///   routes.add_route("/", "/src/static/index.html");
+    /// use ctchi::core::app::Ctchi;
+    /// use ctchi::core::routes::{Routes, Route};
     ///
-    ///   let configuration = Config {
-    ///        bind_path: "127.0.0.1:8080",
-    ///        base_path: "/var/www/",
-    ///        routes,
-    ///   };
+    /// use ctchi_codegen::route;
     ///
-    ///   let server = Ctchi::new(configuration);
-    ///   server.start();
+    /// #[route("/")]
+    /// fn index() -> String {
+    ///     render!("index.html")
+    /// }
+    ///
+    /// fn main() {
+    ///     let mut routes = Routes::new();
+    ///     // add route to your controller
+    ///     routes.add_route(routes!(index)());
+    ///
+    ///     // create and run local server
+    ///     let server = Ctchi::new(routes);
+    ///     let server_result = match server.start() {
+    ///         Ok(()) => "Ctchi application server is successfully running!".to_string(),
+    ///         Err(err) => format!("Can't start server! Because '{}'", err)
+    ///     };
+    /// }
     /// ```
     pub fn start(self) -> std::io::Result<()> {
-        let listener = TcpListener::bind(self.config.bind_path)?;
-        let config = Arc::new(self.config);
+
+        let config_reader = get_configuration();
+        let config = config_reader.inner.lock().unwrap();
+        let bind_path= config.bind_path.to_string();
+        let log_enabled = config.log_enabled;
+        drop(config);
+
+        if log_enabled {
+            logger::init();
+        }
+
+        log::info!("Ctchi is running!");
+
+        let listener = TcpListener::bind(bind_path)?;
         let routes = Arc::new(self.routes);
 
         let pool = ThreadPool::new(4);
@@ -159,12 +229,14 @@ impl Ctchi {
         for stream in listener.incoming() {
             let stream = stream.unwrap();
             let c = config.clone();
+
             let r = routes.clone();
 
             pool.execute(|| {
                 let handler = RequestHandler {};
 
                 handler.handle_request(stream, c, r);
+
             });
         }
         Ok(())

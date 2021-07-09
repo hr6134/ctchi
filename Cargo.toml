@@ -1,6 +1,6 @@
 [package]
 name = "ctchi"
-version = "0.7.0"
+version = "0.19.1"
 authors = ["glotitude <ltoshchev@gmail.com>"]
 edition = "2018"
 description = "Home made web framework."
@@ -10,13 +10,16 @@ homepage = "https://github.com/glotitude/ctchi"
 readme = "README.md"
 
 exclude = [
-    "src/static/*",
+    "src/pages/*",
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ctchi_codegen = { path = "ctchi_codegen", version = "0.1.0" }
+ctchi_codegen = { path = "ctchi_codegen", version = "0.2.0" }
+regex = "1"
+log = "0.4.8"
+chrono = "0.4.19"
 
 [workspace]
 members = [

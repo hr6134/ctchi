@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 /// Represent HTTP method + unknown value in case we are missing something in enum or
 /// client send us wrong request.
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum HttpMethod {
     GET,
     POST,
@@ -49,7 +51,7 @@ impl HttpMethod {
 pub struct Request {
     pub method: HttpMethod,
     pub url: String,
-    pub headers: String,
+    pub headers: HashMap<String, String>,
     pub body: String,
 }
 
